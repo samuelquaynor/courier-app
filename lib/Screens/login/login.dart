@@ -3,7 +3,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:formz/formz.dart';
-import 'package:truckngo/Screens/homescreen.dart';
+import 'package:truckngo/Screens/maps/maps.dart';
 
 import 'package:truckngo/Screens/register/register.dart';
 import 'package:truckngo/components/background.dart';
@@ -11,6 +11,10 @@ import 'package:truckngo/data/repositories/authentication_repository.dart';
 import 'package:truckngo/logic/bloc/AuthenticationBloc/authentication_bloc.dart';
 import 'package:truckngo/logic/loginCubit/login_cubit.dart';
 import 'package:truckngo/models/wrappers/auth_status.dart';
+
+import 'package:location/location.dart';
+
+import '../maps/location.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -24,8 +28,19 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     FlutterNativeSplash.remove();
     super.initState();
+    getLocationData();
   }
 
+  LocationHelper locationData = LocationHelper();
+
+  Future<void> getLocationData() async {
+    locationData = LocationHelper();
+    await locationData.getCurrentLocation();
+
+    if (locationData.latitude == null || locationData.longitude == null) {
+      //
+    }
+  }
   String? email;
   String? password;
 
@@ -43,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   AuthenticationStatus.authenticated) {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) {
-                    return const HomeScreen();
+                    return MainPage();
                   }),
                 );
               }
@@ -97,7 +112,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           // if you r using flutter less then 1.20.* then maybe this is not working properly
                         ),
                         keyboardType: TextInputType.emailAddress,
-                        
                         onChanged: (email) =>
                             context.read<LoginCubit>().onEmailChanged(email),
                       ),
@@ -188,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => RegisterScreen()))
+                              builder: (context) => const RegisterScreen()))
                     },
                     child: const Text(
                       "Don't Have an Account? Sign up",
