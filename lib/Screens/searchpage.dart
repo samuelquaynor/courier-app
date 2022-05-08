@@ -1,12 +1,14 @@
-import 'package:truckngo/brand_colors.dart';
-import 'package:truckngo/models/prediction.dart';
-import 'package:truckngo/dataproviders/appdata.dart';
-import 'package:truckngo/globalvariables.dart';
-import 'package:truckngo/helpers/requesthelper.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:truckngo/Screens/widgets/BrandDivider.dart';
 import 'package:truckngo/Screens/widgets/PredictionTile.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:truckngo/brand_colors.dart';
+import 'package:truckngo/globalvariables.dart';
+import 'package:truckngo/helpers/requesthelper.dart';
+import 'package:truckngo/models/prediction.dart';
+
+import 'maps/bloc/maps_bloc.dart';
 
 class SearchPage extends StatefulWidget {
   @override
@@ -31,7 +33,7 @@ class _SearchPageState extends State<SearchPage> {
   void searchPlace(String placeName) async {
     if (placeName.length > 1) {
       String url =
-          'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$placeName&key=$mapKey&sessiontoken=123254251&components=country:ng';
+          'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$placeName&key=$mapKey&sessiontoken=123254251&components=country:gh';
       var response = await RequestHelper.getRequest(url);
       if (response == 'failed') {
         print('RESPONSE FAILED ON SEARCH');
@@ -51,8 +53,8 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    String address =
-        Provider.of<AppData>(context).pickupAddress.placeName ?? '';
+    String address = context
+        .select((MapsBloc bloc) => bloc.state.pickUpAddress?.placeName ?? '');
     pickupController.text = address;
     setFocus();
 
@@ -183,8 +185,11 @@ class _SearchPageState extends State<SearchPage> {
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 16),
                       itemBuilder: (context, index) {
-                        return PredictionTile(
-                            prediction: destinationPredictionList[index]);
+                        return BlocProvider(
+                          create: (context) => MapsBloc(),
+                          child: PredictionTile(
+                              prediction: destinationPredictionList[index]),
+                        );
                       },
                       separatorBuilder: (BuildContext context, int index) =>
                           BrandDivider(),

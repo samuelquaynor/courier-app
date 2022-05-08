@@ -1,19 +1,21 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:truckngo/models/address.dart';
-import 'package:truckngo/models/directiondetails.dart';
-import 'package:truckngo/models/userCL.dart';
-import 'package:truckngo/dataproviders/appdata.dart';
-import 'package:truckngo/globalvariables.dart';
-import 'package:truckngo/helpers/requesthelper.dart';
 import 'package:connectivity/connectivity.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:truckngo/globalvariables.dart';
+import 'package:truckngo/helpers/requesthelper.dart';
+import 'package:truckngo/models/address.dart';
+import 'package:truckngo/models/directiondetails.dart';
+
+import '../Screens/maps/bloc/maps_bloc.dart';
+
 //UserCL = "user" from course but existing User class now already exists (formerly FirebaseUser)
 
 class HelperMethods {
@@ -29,10 +31,13 @@ class HelperMethods {
     userRef.once().then((snapshot) {
       print(snapshot);
     });
+    return null;
   }
 
   static Future<String> findCoordinateAddress(
-      Position position, context) async {
+    Position position,
+    context,
+  ) async {
     String placeAddress = '';
     var connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult != ConnectivityResult.mobile &&
@@ -54,8 +59,7 @@ class HelperMethods {
 
       print(placeAddress);
       print(pickupAddress.placeName);
-      Provider.of<AppData>(context, listen: false)
-          .updatePickupAddress(pickupAddress);
+       BlocProvider.of<MapsBloc>(context).add(UpdatePickUpAddressEvent(pickupAddress));
     } else {}
     return placeAddress;
   }
@@ -104,7 +108,7 @@ class HelperMethods {
 
   static sendNotifications(String token, context, String rideId) async {
     var destination =
-        Provider.of<AppData>(context, listen: false).destinationAddress;
+        context.select((MapsBloc bloc) => bloc.state.destinationAddress);
     Map<String, String> headerMap = {
       'Content-Type': 'application/json; charset=UTF-8',
       'Authorization': serverKeyOauth,

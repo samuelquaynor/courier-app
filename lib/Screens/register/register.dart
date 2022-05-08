@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:formz/formz.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
-import 'package:truckngo/Screens/homescreen.dart';
 
 import 'package:truckngo/Screens/login/login.dart';
 import 'package:truckngo/components/background.dart';
 import 'package:truckngo/data/repositories/authentication_repository.dart';
 import 'package:truckngo/logic/signup/signup_cubit.dart';
+
+import '../maps/maps.dart';
 
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -27,7 +28,7 @@ class RegisterScreen extends StatelessWidget {
             EasyLoading.showSuccess('Account Created');
             Navigator.of(context).push(
               MaterialPageRoute(builder: (context) {
-                return const HomeScreen();
+                return MainPage();
               }),
             );
           } else if (state.status.isSubmissionFailure) {
@@ -35,6 +36,7 @@ class RegisterScreen extends StatelessWidget {
           }
         },
         child: Scaffold(
+          resizeToAvoidBottomInset: false,
           body: Background(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

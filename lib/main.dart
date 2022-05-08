@@ -11,6 +11,7 @@ import 'package:truckngo/firebase_options.dart';
 import 'package:truckngo/logic/bloc/AuthenticationBloc/authentication_bloc.dart';
 
 import 'Screens/login/login.dart';
+import 'Screens/maps/bloc/maps_bloc.dart';
 
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -59,11 +60,18 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return RepositoryProvider.value(
       value: authenticationRepository,
-      child: BlocProvider(
-        create: (context) => AuthenticationBloc(
-          userRepository: userRepository,
-          authenticationRepository: authenticationRepository,
-        ),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (context) => AuthenticationBloc(
+              userRepository: userRepository,
+              authenticationRepository: authenticationRepository,
+            ),
+          ),
+          BlocProvider(
+            create: (context) => MapsBloc(),
+          ),
+        ],
         child: MaterialApp(
           title: 'TRUCKNGO',
           debugShowCheckedModeBanner: false,
