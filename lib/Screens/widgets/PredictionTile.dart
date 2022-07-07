@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:truckngo/Screens/widgets/ProgressDialog.dart';
 import 'package:truckngo/brand_colors.dart';
-import 'package:truckngo/dataproviders/appdata.dart';
 import 'package:truckngo/globalvariables.dart';
 import 'package:truckngo/helpers/requesthelper.dart';
 import 'package:truckngo/models/address.dart';

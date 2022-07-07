@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:truckngo/models/directiondetails.dart';
-import 'package:truckngo/models/nearbydriver.dart';
+import 'package:truckngo/models/driver.dart';
 //import 'package:truckngo/models/userCL.dart';
 import 'package:truckngo/globalvariables.dart';
 import 'package:truckngo/helpers/firehelper.dart';
@@ -64,7 +64,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   late StreamSubscription rideSubscription;
 
-  late List<NearbyDriver> availableDrivers;
+  // late List<NearbyDriver> availableDrivers;
 
   bool nearbyDriversKeysLoaded = false;
 
@@ -578,9 +578,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                               });
                               showRequestingSheet();
 
-                              availableDrivers = FireHelper.nearbyDriverList;
+                              // availableDrivers = FireHelper.nearbyDriverList;
 
-                              findDriver();
+                              // findDriver();
                             },
                           ),
                         ),
@@ -945,72 +945,72 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         ?.listen((map) {
       print(map);
 
-      if (map != null) {
-        var callBack = map['callBack'];
+      // if (map != null) {
+      //   var callBack = map['callBack'];
 
-        //latitude will be retrieved from map['latitude']
-        //longitude will be retrieved from map['longitude']
+      //   //latitude will be retrieved from map['latitude']
+      //   //longitude will be retrieved from map['longitude']
 
-        switch (callBack) {
-          case Geofire.onKeyEntered:
-            NearbyDriver nearbyDriver = NearbyDriver();
-            nearbyDriver.key = map['key'];
-            nearbyDriver.latitude = map['latitude'];
-            nearbyDriver.longitude = map['longitude'];
-            FireHelper.nearbyDriverList.add(nearbyDriver);
+      //   switch (callBack) {
+      //     case Geofire.onKeyEntered:
+      //       NearbyDriver nearbyDriver = NearbyDriver();
+      //       nearbyDriver.key = map['key'];
+      //       nearbyDriver.latitude = map['latitude'];
+      //       nearbyDriver.longitude = map['longitude'];
+      //       FireHelper.nearbyDriverList.add(nearbyDriver);
 
-            if (nearbyDriversKeysLoaded) {
-              updateDriversOnMap();
-            }
-            break;
+      //       if (nearbyDriversKeysLoaded) {
+      //         updateDriversOnMap();
+      //       }
+      //       break;
 
-          case Geofire.onKeyExited:
-            FireHelper.removeFromList(map['key']);
-            updateDriversOnMap();
-            break;
+      //     case Geofire.onKeyExited:
+      //       FireHelper.removeFromList(map['key']);
+      //       updateDriversOnMap();
+      //       break;
 
-          case Geofire.onKeyMoved:
-            // Update your key's location
-            NearbyDriver nearbyDriver = NearbyDriver();
-            nearbyDriver.key = map['key'];
-            nearbyDriver.latitude = map['latitude'];
-            nearbyDriver.longitude = map['longitude'];
+      //     case Geofire.onKeyMoved:
+      //       // Update your key's location
+      //       NearbyDriver nearbyDriver = NearbyDriver();
+      //       nearbyDriver.key = map['key'];
+      //       nearbyDriver.latitude = map['latitude'];
+      //       nearbyDriver.longitude = map['longitude'];
 
-            FireHelper.updateNearbyLocation(nearbyDriver);
-            updateDriversOnMap();
-            break;
+      //       FireHelper.updateNearbyLocation(nearbyDriver);
+      //       updateDriversOnMap();
+      //       break;
 
-          case Geofire.onGeoQueryReady:
-            nearbyDriversKeysLoaded = true;
-            updateDriversOnMap();
+      //     case Geofire.onGeoQueryReady:
+      //       nearbyDriversKeysLoaded = true;
+      //       updateDriversOnMap();
 
-            break;
-        }
-      }
+      //       break;
+      //   }
+      // }
 
       setState(() {});
     });
   }
 
-  void updateDriversOnMap() {
-    setState(() {
-      _Markers.clear();
-    });
-    Set<Marker> tempMarkers = <Marker>{};
-    for (NearbyDriver driver in FireHelper.nearbyDriverList) {
-      LatLng driverPosition = LatLng(driver.latitude!, driver.longitude!);
-      Marker thisMarker = Marker(
-        markerId: MarkerId('driver${driver.key}'),
-        position: driverPosition,
-        icon: nearbyIcon!,
-        rotation: HelperMethods.generateRandomNumber(360),
-      );
-      tempMarkers.add(thisMarker);
-    }
-    setState(() {
-      _Markers = tempMarkers;
-    });
-  }
+  // void updateDriversOnMap() {
+  //   setState(() {
+  //     _Markers.clear();
+  //   });
+  //   Set<Marker> tempMarkers = <Marker>{};
+  //   for (NearbyDriver driver in FireHelper.nearbyDriverList) {
+  //     LatLng driverPosition = LatLng(driver.latitude!, driver.longitude!);
+  //     Marker thisMarker = Marker(
+  //       markerId: MarkerId('driver${driver.key}'),
+  //       position: driverPosition,
+  //       icon: nearbyIcon!,
+  //       rotation: HelperMethods.generateRandomNumber(360),
+  //     );
+  //     tempMarkers.add(thisMarker);
+  //   }
+  //   setState(() {
+  //     _Markers = tempMarkers;
+  //   });
+  // }
 
 //   void createRideRequest() {
 //     rideRef = FirebaseDatabase.instance.reference().child('rideRequest').push();
@@ -1207,80 +1207,80 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     setupPositionLocator();
   }
 
-  void noDriverFound() {
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) => NoDriverDialog());
-  }
+  // void noDriverFound() {
+  //   showDialog(
+  //       context: context,
+  //       barrierDismissible: false,
+  //       builder: (BuildContext context) => NoDriverDialog());
+  // }
 
-  void findDriver() {
-    if (availableDrivers.isEmpty) {
-      cancelRequest();
-      resetApp();
-      noDriverFound();
-      return;
-    }
-    var driver = availableDrivers[0];
+  // void findDriver() {
+  //   if (availableDrivers.isEmpty) {
+  //     cancelRequest();
+  //     resetApp();
+  //     noDriverFound();
+  //     return;
+  //   }
+  //   var driver = availableDrivers[0];
 
-    notifyDriver(driver);
+  //   notifyDriver(driver);
 
-    availableDrivers.removeAt(0);
-    print(driver.key);
-  }
+  //   availableDrivers.removeAt(0);
+  //   print(driver.key);
+  // }
 
-  void notifyDriver(NearbyDriver driver) {
-    DatabaseReference driverTripRef = FirebaseDatabase.instance
-        .reference()
-        .child('drivers/${driver.key}/newtrip');
+//   void notifyDriver(NearbyDriver driver) {
+//     DatabaseReference driverTripRef = FirebaseDatabase.instance
+//         .reference()
+//         .child('drivers/${driver.key}/newtrip');
 
-    driverTripRef.set(rideRef!.key);
+//     driverTripRef.set(rideRef!.key);
 
-//get and notify driver using token
+// //get and notify driver using token
 
-    DatabaseReference tokenRef =
-        FirebaseDatabase.instance.ref('drivers/${driver.key}/token');
-    tokenRef.once().then((snapshot) {
-      // if (snapshot.value != null) {
-      //   String token = snapshot.value.toString();
-      //   //send notifications to driver
+//     DatabaseReference tokenRef =
+//         FirebaseDatabase.instance.ref('drivers/${driver.key}/token');
+//     tokenRef.once().then((snapshot) {
+//       // if (snapshot.value != null) {
+//       //   String token = snapshot.value.toString();
+//       //   //send notifications to driver
 
-      //   HelperMethods.sendNotifications(token, context, rideRef!.key);
-      // } else {
-      //   return;
-      // }
-      // const oneSecTick = Duration(seconds: 1);
-      // var timer = Timer.periodic(oneSecTick, (timer) {
-      //   //stop timer when ride request is cancelled
-      //   if (appState != 'REQUESTING') {
-      //     driverTripRef.set('cancelled');
-      //     driverTripRef.onDisconnect();
-      //     timer.cancel();
-      //     driverRequestTimeout = 30;
-      //   }
-      //   driverRequestTimeout--;
+//       //   HelperMethods.sendNotifications(token, context, rideRef!.key);
+//       // } else {
+//       //   return;
+//       // }
+//       // const oneSecTick = Duration(seconds: 1);
+//       // var timer = Timer.periodic(oneSecTick, (timer) {
+//       //   //stop timer when ride request is cancelled
+//       //   if (appState != 'REQUESTING') {
+//       //     driverTripRef.set('cancelled');
+//       //     driverTripRef.onDisconnect();
+//       //     timer.cancel();
+//       //     driverRequestTimeout = 30;
+//       //   }
+//       //   driverRequestTimeout--;
 
-      //   //a value event listener for driver accepting trip request
-      //   driverTripRef.onValue.listen((event) {
-      //     //confirms that driver has clicked accepted for the new trip request
-      //     if (event.snapshot.value.toString() == 'accepted') {
-      //       driverTripRef.onDisconnect();
-      //       timer.cancel();
-      //       driverRequestTimeout = 30;
-      //     }
-      //   });
+//       //   //a value event listener for driver accepting trip request
+//       //   driverTripRef.onValue.listen((event) {
+//       //     //confirms that driver has clicked accepted for the new trip request
+//       //     if (event.snapshot.value.toString() == 'accepted') {
+//       //       driverTripRef.onDisconnect();
+//       //       timer.cancel();
+//       //       driverRequestTimeout = 30;
+//       //     }
+//       //   });
 
-      //   if (driverRequestTimeout == 0) {
-      //     // informs driver that ride has timed out
-      //     driverTripRef.set('timeout');
-      //     driverTripRef.onDisconnect();
-      //     driverRequestTimeout = 30;
-      //     timer.cancel();
+//       //   if (driverRequestTimeout == 0) {
+//       //     // informs driver that ride has timed out
+//       //     driverTripRef.set('timeout');
+//       //     driverTripRef.onDisconnect();
+//       //     driverRequestTimeout = 30;
+//       //     timer.cancel();
 
-      //     //select the next closest driver
-      //     findDriver();
-      //   }
-      // });
-    });
-  }
+//       //     //select the next closest driver
+//       //     findDriver();
+//       //   }
+//       // });
+//     });
+//   }
 }

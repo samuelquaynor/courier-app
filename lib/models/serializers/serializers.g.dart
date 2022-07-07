@@ -7,7 +7,9 @@ part of serializers;
 // **************************************************************************
 
 Serializers _$serializers = (new Serializers().toBuilder()
+      ..add(Driver.serializer)
       ..add(ErrorHandler.serializer)
+      ..add(Ride.serializer)
       ..add(User.serializer))
     .build();
 
