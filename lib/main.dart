@@ -12,6 +12,9 @@ import 'package:truckngo/logic/bloc/AuthenticationBloc/authentication_bloc.dart'
 
 import 'Screens/login/login.dart';
 import 'Screens/maps/bloc/maps_bloc.dart';
+import 'Screens/maps/maps.dart';
+import 'Screens/screens.dart';
+import 'services/auth_service.dart';
 
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -19,9 +22,11 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  bool isLoggedIn = AuthService.instance.isLoggedIn;
   runApp(MyApp(
     authenticationRepository: AuthenticationRepository(),
     userRepository: UserRepository(),
+    isLoggedIn: isLoggedIn,
   ));
   configLoading();
 }
@@ -52,12 +57,15 @@ class MyApp extends StatelessWidget {
     Key? key,
     required this.authenticationRepository,
     required this.userRepository,
+    required this.isLoggedIn,
   }) : super(key: key);
   final AuthenticationRepository authenticationRepository;
   final UserRepository userRepository;
+  final bool isLoggedIn;
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    FlutterNativeSplash.remove();
     return RepositoryProvider.value(
       value: authenticationRepository,
       child: MultiBlocProvider(
@@ -138,7 +146,7 @@ class MyApp extends StatelessWidget {
               ),
             ),
           ),
-          home: const LoginScreen(),
+          home: isLoggedIn ? MainPage() : const LoginScreen(),
           builder: EasyLoading.init(),
         ),
       ),

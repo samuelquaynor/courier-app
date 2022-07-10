@@ -2,22 +2,19 @@ import 'dart:async';
 
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:truckngo/models/directiondetails.dart';
-import 'package:truckngo/models/driver.dart';
 //import 'package:truckngo/models/userCL.dart';
 import 'package:truckngo/globalvariables.dart';
-import 'package:truckngo/helpers/firehelper.dart';
 import 'package:truckngo/helpers/helpermethods.dart';
+import 'package:truckngo/models/ride.dart';
 import 'package:truckngo/rideVariables.dart';
 import 'package:truckngo/Screens/searchpage.dart';
 import 'package:truckngo/Screens/styles/styles.dart';
 import 'package:truckngo/Screens/widgets/BrandDivider.dart';
 import 'package:truckngo/brand_colors.dart';
-import 'package:truckngo/Screens/widgets/NoDriverDialog.dart';
 import 'package:truckngo/Screens/widgets/ProgressDialog.dart';
 import 'package:truckngo/Screens/widgets/TaxiButton.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -26,6 +23,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../models/address.dart';
+import '../../models/driver.dart';
+import '../../services/auth_service.dart';
+import '../../services/ride_service.dart';
+import '../widgets/NoDriverDialog.dart';
 import 'bloc/maps_bloc.dart';
 
 class MainPage extends StatefulWidget {
@@ -58,13 +59,13 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
   String appState = 'NORMAL';
 
+  Address? destinationAddress;
+
   bool drawerCanOpen = true;
 
   DatabaseReference? rideRef;
 
-  late StreamSubscription rideSubscription;
-
-  // late List<NearbyDriver> availableDrivers;
+  List<Driver> availableDrivers = [];
 
   bool nearbyDriversKeysLoaded = false;
 
@@ -81,7 +82,17 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     String address =
         await HelperMethods.findCoordinateAddress(position, context);
 // print(address);
-    startGeofireListener();
+    Future<Stream<Driver?>> driverStream = findDriversAvailble(
+        latitude: currentPosition!.latitude,
+        longitude: currentPosition!.longitude);
+    driverStream.asStream().listen((event) {
+      event.listen((event) {
+        setState(() {
+          availableDrivers.add(event!);
+          updateDriversOnMap();
+        });
+      });
+    });
   }
 
   void showDetailSheet({
@@ -102,14 +113,23 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     });
   }
 
-  void showRequestingSheet() {
+  void showRequestingSheet({Address? pickUpAddress}) {
     setState(() {
       rideDetailsSheetHeight = 0;
       requestingSheetHeight = (Platform.isAndroid) ? 195 : 220;
       mapBottomPadding = (Platform.isAndroid) ? 200 : 190;
       drawerCanOpen = true;
     });
-    // createRideRequest();
+    Ride ride = Ride((b) => b
+      ..riderId = AuthService.instance.currentUser?.uid
+      ..driverId = 'waiting'
+      ..pickUpLatitude = pickUpAddress?.latitude
+      ..pickUpLongitude = pickUpAddress?.longitude
+      ..destinationLatitude = destinationAddress?.latitude
+      ..price = HelperMethods.estimateFares(tripDirectionDetails!) * 6.5
+      ..destinationLongitude = destinationAddress?.longitude);
+    print(ride);
+    createRide(ride);
   }
 
   showTripSheet() {
@@ -144,6 +164,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     createMarker();
+    Address? pickUpAddress =
+        context.select((MapsBloc bloc) => bloc.state.pickUpAddress);
     return SafeArea(
       child: Scaffold(
         key: scaffoldKey,
@@ -341,22 +363,20 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                           ),
                           GestureDetector(
                             onTap: () async {
-                              Address response = await Navigator.push(
+                              destinationAddress = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => SearchPage(),
                                   ));
-                              if (response.latitude != null) {
-                                print(response.latitude);
+                              if (destinationAddress?.latitude != null) {
                                 showDetailSheet(
                                     context: context,
-                                    pickUpAddress:
-                                        BlocProvider.of<MapsBloc>(context)
+                                    pickUpAddress: BlocProvider.of<MapsBloc>(context)
                                             .state
                                             .pickUpAddress!,
-                                    destinationAddress: response);
+                                    destinationAddress: destinationAddress);
                               } else {
-                                print(response);
+                                print('faileddd');
                               }
                             },
                             child: Container(
@@ -528,7 +548,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                 ),
                                 Text(
                                     (tripDirectionDetails != null)
-                                        ? '¢${HelperMethods.estimateFares(tripDirectionDetails!) * 7.52}'
+                                        ? '¢${HelperMethods.estimateFares(tripDirectionDetails!) * 6.5.ceil()}'
                                         : '',
                                     style: const TextStyle(
                                         fontSize: 18,
@@ -576,7 +596,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                               setState(() {
                                 appState = 'REQUESTING';
                               });
-                              showRequestingSheet();
+                              showRequestingSheet(pickUpAddress: pickUpAddress);
 
                               // availableDrivers = FireHelper.nearbyDriverList;
 
@@ -938,191 +958,137 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     });
   }
 
-  void startGeofireListener() {
-    Geofire.initialize('driversAvailable');
-    Geofire.queryAtLocation(
-            currentPosition!.latitude, currentPosition!.longitude, 20)
-        ?.listen((map) {
-      print(map);
-
-      // if (map != null) {
-      //   var callBack = map['callBack'];
-
-      //   //latitude will be retrieved from map['latitude']
-      //   //longitude will be retrieved from map['longitude']
-
-      //   switch (callBack) {
-      //     case Geofire.onKeyEntered:
-      //       NearbyDriver nearbyDriver = NearbyDriver();
-      //       nearbyDriver.key = map['key'];
-      //       nearbyDriver.latitude = map['latitude'];
-      //       nearbyDriver.longitude = map['longitude'];
-      //       FireHelper.nearbyDriverList.add(nearbyDriver);
-
-      //       if (nearbyDriversKeysLoaded) {
-      //         updateDriversOnMap();
-      //       }
-      //       break;
-
-      //     case Geofire.onKeyExited:
-      //       FireHelper.removeFromList(map['key']);
-      //       updateDriversOnMap();
-      //       break;
-
-      //     case Geofire.onKeyMoved:
-      //       // Update your key's location
-      //       NearbyDriver nearbyDriver = NearbyDriver();
-      //       nearbyDriver.key = map['key'];
-      //       nearbyDriver.latitude = map['latitude'];
-      //       nearbyDriver.longitude = map['longitude'];
-
-      //       FireHelper.updateNearbyLocation(nearbyDriver);
-      //       updateDriversOnMap();
-      //       break;
-
-      //     case Geofire.onGeoQueryReady:
-      //       nearbyDriversKeysLoaded = true;
-      //       updateDriversOnMap();
-
-      //       break;
-      //   }
-      // }
-
-      setState(() {});
+  void updateDriversOnMap() {
+    setState(() {
+      _Markers.clear();
+    });
+    Set<Marker> tempMarkers = <Marker>{};
+    for (Driver driver in availableDrivers) {
+      LatLng driverPosition = LatLng(driver.latitude!, driver.longitude!);
+      Marker thisMarker = Marker(
+        markerId: MarkerId('driver${driver.id}'),
+        position: driverPosition,
+        icon: nearbyIcon!,
+        rotation: HelperMethods.generateRandomNumber(360),
+      );
+      tempMarkers.add(thisMarker);
+    }
+    setState(() {
+      _Markers = tempMarkers;
     });
   }
 
-  // void updateDriversOnMap() {
-  //   setState(() {
-  //     _Markers.clear();
-  //   });
-  //   Set<Marker> tempMarkers = <Marker>{};
-  //   for (NearbyDriver driver in FireHelper.nearbyDriverList) {
-  //     LatLng driverPosition = LatLng(driver.latitude!, driver.longitude!);
-  //     Marker thisMarker = Marker(
-  //       markerId: MarkerId('driver${driver.key}'),
-  //       position: driverPosition,
-  //       icon: nearbyIcon!,
-  //       rotation: HelperMethods.generateRandomNumber(360),
-  //     );
-  //     tempMarkers.add(thisMarker);
+  //   void createRideRequest() {
+  //     rideRef = FirebaseDatabase.instance.reference().child('rideRequest').push();
+
+  //     // rideRef;
+  //     var pickup = Provider.of<AppData>(context, listen: false).pickupAddress;
+  //     var destination =
+  //         Provider.of<AppData>(context, listen: false).destinationAddress;
+
+  //     Map pickupMap = {
+  //       'latitude': pickup.latitude.toString(),
+  //       'longitude': pickup.longitude.toString(),
+  //     };
+
+  //     Map destinationMap = {
+  //       'latitude': destination.latitude.toString(),
+  //       'longitude': destination.longitude.toString(),
+  //     };
+
+  //     Map rideMap = <String, Object>{
+  //       'created_at': DateTime.now().toString(),
+  //       'rider_name': currentUserInfo.fullName!,
+  //       'rider_phone': currentUserInfo.phone!,
+  //       'pickup_address': pickup.placeName!,
+  //       'destination_address': destination.placeName!,
+  //       'location': pickupMap,
+  //       'destination': destinationMap,
+  //       'payment_method': 'card',
+  //       'driver_id': 'waiting',
+  //     };
+
+  //     rideRef?.set(rideMap);
+
+  //     rideSubscription = rideRef!.onValue.listen((event) async {
+  //       //check for null snapshot
+
+  //       if (event.snapshot.value == null) {
+  //         return;
+  //       }
+  // //get car details
+  //       if (event.snapshot.value['car_details'] != null) {
+  //         setState(() {
+  //           driverCarDetails = event.snapshot.value['car_details'].toString();
+  //         });
+  //       }
+
+  //       //get driver name
+  //       if (event.snapshot.value['driver_name'] != null) {
+  //         setState(() {
+  //           driverFullName = event.snapshot.value['driver_name'].toString();
+  //         });
+  //       }
+
+  //       //get driver phone no
+  //       if (event.snapshot.value['driver_phone'] != null) {
+  //         setState(() {
+  //           driverPhoneNumber = event.snapshot.value['driver_phone'].toString();
+  //         });
+  //       }
+
+  //       // get and use driver location updates
+  //       if (event.snapshot.value['driver_location'] != null) {
+  //         double driverLat = double.parse(
+  //             event.snapshot.value['driver_location']['latitude'].toString());
+  //         double driverLng = double.parse(
+  //             event.snapshot.value['driver_location']['longitude'].toString());
+
+  //         LatLng driverLocation = LatLng(driverLat, driverLng);
+
+  //         if (status == 'accepted') {
+  //           updateToPickup(driverLocation);
+  //         } else if (status == 'ontrip') {
+  //           updateToDestination(driverLocation);
+  //         } else if (status == 'arrived') {
+  //           setState(() {
+  //             tripStatusDisplay = 'Driver has arrived';
+  //           });
+  //         }
+  //       }
+
+  //       if (event.snapshot.value['status'] != null) {
+  //         status = event.snapshot.value['status'].toString();
+  //       }
+  //       if (status == 'accepted') {
+  //         showTripSheet();
+  //         Geofire.stopListener();
+  //         removeGeofireMarkers();
+  //       }
+
+  //       if (status == 'ended') {
+  //         if (event.snapshot.value['fares'] != null) {
+  //           int fares = int.parse(event.snapshot.value['fares'].toString());
+
+  //           var response = await showDialog(
+  //             context: context,
+  //             barrierDismissible: false,
+  //             builder: (BuildContext context) => CollectPayment(
+  //               paymentMethod: 'cash',
+  //               fares: fares,
+  //             ),
+  //           );
+  //           if (response == 'close') {
+  //             rideRef?.onDisconnect();
+  //             rideRef = null;
+  //             rideSubscription?.cancel();
+  //             rideSubscription = null;
+  //             resetApp();
+  //           }
+  //         }
+  //       }
+  //     });
   //   }
-  //   setState(() {
-  //     _Markers = tempMarkers;
-  //   });
-  // }
-
-//   void createRideRequest() {
-//     rideRef = FirebaseDatabase.instance.reference().child('rideRequest').push();
-
-//     // rideRef;
-//     var pickup = Provider.of<AppData>(context, listen: false).pickupAddress;
-//     var destination =
-//         Provider.of<AppData>(context, listen: false).destinationAddress;
-
-//     Map pickupMap = {
-//       'latitude': pickup.latitude.toString(),
-//       'longitude': pickup.longitude.toString(),
-//     };
-
-//     Map destinationMap = {
-//       'latitude': destination.latitude.toString(),
-//       'longitude': destination.longitude.toString(),
-//     };
-
-//     Map rideMap = <String, Object>{
-//       'created_at': DateTime.now().toString(),
-//       'rider_name': currentUserInfo.fullName!,
-//       'rider_phone': currentUserInfo.phone!,
-//       'pickup_address': pickup.placeName!,
-//       'destination_address': destination.placeName!,
-//       'location': pickupMap,
-//       'destination': destinationMap,
-//       'payment_method': 'card',
-//       'driver_id': 'waiting',
-//     };
-
-//     rideRef?.set(rideMap);
-
-//     rideSubscription = rideRef!.onValue.listen((event) async {
-//       //check for null snapshot
-
-//       if (event.snapshot.value == null) {
-//         return;
-//       }
-// //get car details
-//       if (event.snapshot.value['car_details'] != null) {
-//         setState(() {
-//           driverCarDetails = event.snapshot.value['car_details'].toString();
-//         });
-//       }
-
-//       //get driver name
-//       if (event.snapshot.value['driver_name'] != null) {
-//         setState(() {
-//           driverFullName = event.snapshot.value['driver_name'].toString();
-//         });
-//       }
-
-//       //get driver phone no
-//       if (event.snapshot.value['driver_phone'] != null) {
-//         setState(() {
-//           driverPhoneNumber = event.snapshot.value['driver_phone'].toString();
-//         });
-//       }
-
-//       // get and use driver location updates
-//       if (event.snapshot.value['driver_location'] != null) {
-//         double driverLat = double.parse(
-//             event.snapshot.value['driver_location']['latitude'].toString());
-//         double driverLng = double.parse(
-//             event.snapshot.value['driver_location']['longitude'].toString());
-
-//         LatLng driverLocation = LatLng(driverLat, driverLng);
-
-//         if (status == 'accepted') {
-//           updateToPickup(driverLocation);
-//         } else if (status == 'ontrip') {
-//           updateToDestination(driverLocation);
-//         } else if (status == 'arrived') {
-//           setState(() {
-//             tripStatusDisplay = 'Driver has arrived';
-//           });
-//         }
-//       }
-
-//       if (event.snapshot.value['status'] != null) {
-//         status = event.snapshot.value['status'].toString();
-//       }
-//       if (status == 'accepted') {
-//         showTripSheet();
-//         Geofire.stopListener();
-//         removeGeofireMarkers();
-//       }
-
-//       if (status == 'ended') {
-//         if (event.snapshot.value['fares'] != null) {
-//           int fares = int.parse(event.snapshot.value['fares'].toString());
-
-//           var response = await showDialog(
-//             context: context,
-//             barrierDismissible: false,
-//             builder: (BuildContext context) => CollectPayment(
-//               paymentMethod: 'cash',
-//               fares: fares,
-//             ),
-//           );
-//           if (response == 'close') {
-//             rideRef?.onDisconnect();
-//             rideRef = null;
-//             rideSubscription?.cancel();
-//             rideSubscription = null;
-//             resetApp();
-//           }
-//         }
-//       }
-//     });
-//   }
 
   void removeGeofireMarkers() {
     setState(() {
@@ -1207,27 +1173,27 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     setupPositionLocator();
   }
 
-  // void noDriverFound() {
-  //   showDialog(
-  //       context: context,
-  //       barrierDismissible: false,
-  //       builder: (BuildContext context) => NoDriverDialog());
-  // }
+  void noDriverFound() {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) => NoDriverDialog());
+  }
 
-  // void findDriver() {
-  //   if (availableDrivers.isEmpty) {
-  //     cancelRequest();
-  //     resetApp();
-  //     noDriverFound();
-  //     return;
-  //   }
-  //   var driver = availableDrivers[0];
+  void findDriver() {
+    if (availableDrivers.isEmpty) {
+      cancelRequest();
+      resetApp();
+      noDriverFound();
+      return;
+    }
+    var driver = availableDrivers[0];
 
-  //   notifyDriver(driver);
+    // notifyDriver(driver);
 
-  //   availableDrivers.removeAt(0);
-  //   print(driver.key);
-  // }
+    availableDrivers.removeAt(0);
+    // print(driver.key);
+  }
 
 //   void notifyDriver(NearbyDriver driver) {
 //     DatabaseReference driverTripRef = FirebaseDatabase.instance
@@ -1241,46 +1207,46 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 //     DatabaseReference tokenRef =
 //         FirebaseDatabase.instance.ref('drivers/${driver.key}/token');
 //     tokenRef.once().then((snapshot) {
-//       // if (snapshot.value != null) {
-//       //   String token = snapshot.value.toString();
-//       //   //send notifications to driver
+//       if (snapshot.value != null) {
+//         String token = snapshot.value.toString();
+//         //send notifications to driver
 
-//       //   HelperMethods.sendNotifications(token, context, rideRef!.key);
-//       // } else {
-//       //   return;
-//       // }
-//       // const oneSecTick = Duration(seconds: 1);
-//       // var timer = Timer.periodic(oneSecTick, (timer) {
-//       //   //stop timer when ride request is cancelled
-//       //   if (appState != 'REQUESTING') {
-//       //     driverTripRef.set('cancelled');
-//       //     driverTripRef.onDisconnect();
-//       //     timer.cancel();
-//       //     driverRequestTimeout = 30;
-//       //   }
-//       //   driverRequestTimeout--;
+//         HelperMethods.sendNotifications(token, context, rideRef!.key);
+//       } else {
+//         return;
+//       }
+//       const oneSecTick = Duration(seconds: 1);
+//       var timer = Timer.periodic(oneSecTick, (timer) {
+//         //stop timer when ride request is cancelled
+//         if (appState != 'REQUESTING') {
+//           driverTripRef.set('cancelled');
+//           driverTripRef.onDisconnect();
+//           timer.cancel();
+//           driverRequestTimeout = 30;
+//         }
+//         driverRequestTimeout--;
 
-//       //   //a value event listener for driver accepting trip request
-//       //   driverTripRef.onValue.listen((event) {
-//       //     //confirms that driver has clicked accepted for the new trip request
-//       //     if (event.snapshot.value.toString() == 'accepted') {
-//       //       driverTripRef.onDisconnect();
-//       //       timer.cancel();
-//       //       driverRequestTimeout = 30;
-//       //     }
-//       //   });
+//         //a value event listener for driver accepting trip request
+//         driverTripRef.onValue.listen((event) {
+//           //confirms that driver has clicked accepted for the new trip request
+//           if (event.snapshot.value.toString() == 'accepted') {
+//             driverTripRef.onDisconnect();
+//             timer.cancel();
+//             driverRequestTimeout = 30;
+//           }
+//         });
 
-//       //   if (driverRequestTimeout == 0) {
-//       //     // informs driver that ride has timed out
-//       //     driverTripRef.set('timeout');
-//       //     driverTripRef.onDisconnect();
-//       //     driverRequestTimeout = 30;
-//       //     timer.cancel();
+//         if (driverRequestTimeout == 0) {
+//           // informs driver that ride has timed out
+//           driverTripRef.set('timeout');
+//           driverTripRef.onDisconnect();
+//           driverRequestTimeout = 30;
+//           timer.cancel();
 
-//       //     //select the next closest driver
-//       //     findDriver();
-//       //   }
-//       // });
+//           //select the next closest driver
+//           findDriver();
+//         }
+//       });
 //     });
 //   }
 }

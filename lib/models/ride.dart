@@ -15,6 +15,26 @@ abstract class Ride implements Built<Ride, RideBuilder> {
 
   Ride._();
 
+  String? get id;
+
+  String? get riderId;
+
+  String? get driverId;
+
+  double? get pickUpLatitude;
+
+  double? get pickUpLongitude;
+
+  double? get destinationLatitude;
+
+  double? get destinationLongitude;
+
+  double? get price;
+
+  String? get paymentMethod;
+
+  String? get createdAt;
+
   factory Ride([Function(RideBuilder b) updates]) = _$Ride;
 
   String toJson() {

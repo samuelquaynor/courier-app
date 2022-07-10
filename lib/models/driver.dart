@@ -15,14 +15,31 @@ abstract class Driver implements Built<Driver, DriverBuilder> {
 
   Driver._();
 
-  factory Driver([updates(DriverBuilder b)]) = _$Driver;
+  String get id;
+
+  String? get name;
+
+  double? get longitude;
+
+  double? get latitude;
+
+  String? get driverImage;
+
+  String? get carImage;
+
+  int? get truckType;
+
+  String? get numberPlate;
+
+  factory Driver([Function(DriverBuilder b) updates]) = _$Driver;
 
   String toJson() {
     return json.encode(serializers.serializeWith(Driver.serializer, this));
   }
 
   static Driver? fromJson(String jsonString) {
-    return serializers.deserializeWith(Driver.serializer, json.decode(jsonString));
+    return serializers.deserializeWith(
+        Driver.serializer, json.decode(jsonString));
   }
 
   static Serializer<Driver> get serializer => _$driverSerializer;
