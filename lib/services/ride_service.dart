@@ -12,7 +12,7 @@ Future<Stream<Driver?>> findDriversAvailble(
     {required double longitude, required double latitude}) async {
   Geoflutterfire geo = Geoflutterfire(); // Create a geoFirePoint
   GeoFirePoint center = geo.point(latitude: latitude, longitude: longitude);
-  double radius = 50;
+  double radius = 5;
   StreamController<Driver?> driversList = StreamController();
 
   Stream<List<DocumentSnapshot>> driversDoc = geo
@@ -40,7 +40,7 @@ Future<Stream<Driver?>> findDriversAvailble(
 }
 
 Future<void> createRide(Ride ride) async {
-  String uid = Uuid().v1();
+  String uid = const Uuid().v1();
   DatabaseReference ref = FirebaseDatabase.instance.ref("rideRequest/$uid");
 
   Map pickupMap = {
@@ -60,10 +60,21 @@ Future<void> createRide(Ride ride) async {
     'destination': destinationMap,
     'payment_method': ride.paymentMethod,
     'driver_id': ride.driverId,
+    'status': ride.status,
     'price': ride.price,
   };
 
   await ref.set(rideMap);
 
+  startRideListerner(uid);
+
   return;
+}
+
+Future<void> startRideListerner(String uid) async {
+  DatabaseReference ref = FirebaseDatabase.instance.ref("rideRequest/$uid");
+
+  ref.onValue.listen((DatabaseEvent event) {
+    print(event.snapshot.value);
+  });
 }

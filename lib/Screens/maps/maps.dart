@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:truckngo/models/directiondetails.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 //import 'package:truckngo/models/userCL.dart';
 import 'package:truckngo/globalvariables.dart';
 import 'package:truckngo/helpers/helpermethods.dart';
@@ -26,6 +27,7 @@ import '../../models/address.dart';
 import '../../models/driver.dart';
 import '../../services/auth_service.dart';
 import '../../services/ride_service.dart';
+import '../login/login.dart';
 import '../widgets/NoDriverDialog.dart';
 import 'bloc/maps_bloc.dart';
 
@@ -113,7 +115,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     });
   }
 
-  void showRequestingSheet({Address? pickUpAddress}) {
+  void showRequestingSheet({Address? pickUpAddress, String? driverId}) {
     setState(() {
       rideDetailsSheetHeight = 0;
       requestingSheetHeight = (Platform.isAndroid) ? 195 : 220;
@@ -122,13 +124,13 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     });
     Ride ride = Ride((b) => b
       ..riderId = AuthService.instance.currentUser?.uid
-      ..driverId = 'waiting'
+      ..driverId = availableDrivers[0].id
       ..pickUpLatitude = pickUpAddress?.latitude
       ..pickUpLongitude = pickUpAddress?.longitude
       ..destinationLatitude = destinationAddress?.latitude
+      ..status = "waiting"
       ..price = HelperMethods.estimateFares(tripDirectionDetails!) * 6.5
       ..destinationLongitude = destinationAddress?.longitude);
-    print(ride);
     createRide(ride);
   }
 
@@ -170,89 +172,106 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       child: Scaffold(
         key: scaffoldKey,
         drawer: Container(
-          width: 250,
-          color: Colors.white,
-          child: Drawer(
-            child: ListView(
-              padding: const EdgeInsets.all(0),
-              children: <Widget>[
-                Container(
-                  color: Colors.white,
-                  height: 160,
-                  child: DrawerHeader(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
+            width: MediaQuery.of(context).size.width * 0.8,
+            color: Colors.white,
+            child: Drawer(
+                child: ListView(
+                    padding: const EdgeInsets.all(0),
+                    children: <Widget>[
+                  Container(
+                    color: Colors.white,
+                    height: 160,
+                    child: DrawerHeader(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Image.asset(
+                            'images/user_icon.png',
+                            height: 60,
+                          ),
+                          const SizedBox(
+                            width: 15,
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                '${FirebaseAuth.instance.currentUser?.displayName ?? FirebaseAuth.instance.currentUser?.email}',
+                                style: const TextStyle(
+                                    color: Colors.black, fontSize: 14),
+                              ),
+                              const SizedBox(
+                                height: 5,
+                              ),
+                              const Text(
+                                'View Profile',
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 12,
+                                    decoration: TextDecoration.underline),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      children: <Widget>[
-                        Image.asset(
-                          'images/user_icon.png',
-                          height: 60,
-                        ),
-                        const SizedBox(
-                          width: 15,
-                        ),
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const <Widget>[
-                            Text(
-                              'Tee Gbez',
-                              style: TextStyle(
-                                  fontSize: 20, fontFamily: 'Brand-Bold'),
-                            ),
-                            SizedBox(
-                              height: 5,
-                            ),
-                            Text('View Profile'),
-                          ],
-                        )
-                      ],
+                  ),
+                  BrandDivider(),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.card_giftcard),
+                    title: Text(
+                      'Free Rides',
+                      style: kDrawerItemStyle,
                     ),
                   ),
-                ),
-                BrandDivider(),
-                const SizedBox(
-                  height: 10,
-                ),
-                ListTile(
-                  leading: const Icon(Icons.card_giftcard),
-                  title: Text(
-                    'Free Rides',
-                    style: kDrawerItemStyle,
+                  ListTile(
+                    leading: const Icon(Icons.credit_card),
+                    title: Text(
+                      'Payments',
+                      style: kDrawerItemStyle,
+                    ),
                   ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.credit_card),
-                  title: Text(
-                    'Payments',
-                    style: kDrawerItemStyle,
+                  ListTile(
+                    leading: const Icon(Icons.history),
+                    title: Text(
+                      'Ride History',
+                      style: kDrawerItemStyle,
+                    ),
                   ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.history),
-                  title: Text(
-                    'Ride History',
-                    style: kDrawerItemStyle,
+                  ListTile(
+                    leading: const Icon(Icons.support_agent),
+                    title: Text(
+                      'Support',
+                      style: kDrawerItemStyle,
+                    ),
                   ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.support_agent),
-                  title: Text(
-                    'Support',
-                    style: kDrawerItemStyle,
+                  ListTile(
+                    leading: const Icon(Icons.info),
+                    title: Text(
+                      'About',
+                      style: kDrawerItemStyle,
+                    ),
                   ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.info),
-                  title: Text(
-                    'About',
-                    style: kDrawerItemStyle,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+                  ListTile(
+                      onTap: () {
+                        FirebaseAuth.instance.signOut();
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (BuildContext context) => const LoginScreen()
+                          ),
+                          (route) => false,
+                        );
+                      },
+                      leading: const Icon(Icons.logout),
+                      title: Text('Logout', style: kDrawerItemStyle))
+                ]))),
         body: Stack(
           children: <Widget>[
             GoogleMap(
@@ -371,7 +390,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                               if (destinationAddress?.latitude != null) {
                                 showDetailSheet(
                                     context: context,
-                                    pickUpAddress: BlocProvider.of<MapsBloc>(context)
+                                    pickUpAddress:
+                                        BlocProvider.of<MapsBloc>(context)
                                             .state
                                             .pickUpAddress!,
                                     destinationAddress: destinationAddress);
@@ -879,8 +899,8 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     if (results.isNotEmpty) {
       //loop thru all PointLatLng points and convert them
       // to a  list of LatLng, required by the polyline
-      print(
-          'result is not empty oooooooooooooooooooooooooooooooooooooooooooooooooo');
+      // print(
+      //     'result is not empty oooooooooooooooooooooooooooooooooooooooooooooooooo');
       for (var point in results) {
         polylineCoordinates.add(LatLng(point.latitude, point.longitude));
       }

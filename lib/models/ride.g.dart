@@ -40,6 +40,13 @@ class _$RideSerializer implements StructuredSerializer<Ride> {
         ..add(serializers.serialize(value,
             specifiedType: const FullType(String)));
     }
+    value = object.status;
+    if (value != null) {
+      result
+        ..add('status')
+        ..add(serializers.serialize(value,
+            specifiedType: const FullType(String)));
+    }
     value = object.pickUpLatitude;
     if (value != null) {
       result
@@ -115,6 +122,10 @@ class _$RideSerializer implements StructuredSerializer<Ride> {
           result.driverId = serializers.deserialize(value,
               specifiedType: const FullType(String)) as String?;
           break;
+        case 'status':
+          result.status = serializers.deserialize(value,
+              specifiedType: const FullType(String)) as String?;
+          break;
         case 'pickUpLatitude':
           result.pickUpLatitude = serializers.deserialize(value,
               specifiedType: const FullType(double)) as double?;
@@ -158,6 +169,8 @@ class _$Ride extends Ride {
   @override
   final String? driverId;
   @override
+  final String? status;
+  @override
   final double? pickUpLatitude;
   @override
   final double? pickUpLongitude;
@@ -179,6 +192,7 @@ class _$Ride extends Ride {
       {this.id,
       this.riderId,
       this.driverId,
+      this.status,
       this.pickUpLatitude,
       this.pickUpLongitude,
       this.destinationLatitude,
@@ -202,6 +216,7 @@ class _$Ride extends Ride {
         id == other.id &&
         riderId == other.riderId &&
         driverId == other.driverId &&
+        status == other.status &&
         pickUpLatitude == other.pickUpLatitude &&
         pickUpLongitude == other.pickUpLongitude &&
         destinationLatitude == other.destinationLatitude &&
@@ -220,8 +235,12 @@ class _$Ride extends Ride {
                     $jc(
                         $jc(
                             $jc(
-                                $jc($jc($jc(0, id.hashCode), riderId.hashCode),
-                                    driverId.hashCode),
+                                $jc(
+                                    $jc(
+                                        $jc($jc(0, id.hashCode),
+                                            riderId.hashCode),
+                                        driverId.hashCode),
+                                    status.hashCode),
                                 pickUpLatitude.hashCode),
                             pickUpLongitude.hashCode),
                         destinationLatitude.hashCode),
@@ -237,6 +256,7 @@ class _$Ride extends Ride {
           ..add('id', id)
           ..add('riderId', riderId)
           ..add('driverId', driverId)
+          ..add('status', status)
           ..add('pickUpLatitude', pickUpLatitude)
           ..add('pickUpLongitude', pickUpLongitude)
           ..add('destinationLatitude', destinationLatitude)
@@ -262,6 +282,10 @@ class RideBuilder implements Builder<Ride, RideBuilder> {
   String? _driverId;
   String? get driverId => _$this._driverId;
   set driverId(String? driverId) => _$this._driverId = driverId;
+
+  String? _status;
+  String? get status => _$this._status;
+  set status(String? status) => _$this._status = status;
 
   double? _pickUpLatitude;
   double? get pickUpLatitude => _$this._pickUpLatitude;
@@ -304,6 +328,7 @@ class RideBuilder implements Builder<Ride, RideBuilder> {
       _id = $v.id;
       _riderId = $v.riderId;
       _driverId = $v.driverId;
+      _status = $v.status;
       _pickUpLatitude = $v.pickUpLatitude;
       _pickUpLongitude = $v.pickUpLongitude;
       _destinationLatitude = $v.destinationLatitude;
@@ -334,6 +359,7 @@ class RideBuilder implements Builder<Ride, RideBuilder> {
             id: id,
             riderId: riderId,
             driverId: driverId,
+            status: status,
             pickUpLatitude: pickUpLatitude,
             pickUpLongitude: pickUpLongitude,
             destinationLatitude: destinationLatitude,

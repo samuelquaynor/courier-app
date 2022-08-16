@@ -21,6 +21,8 @@ abstract class Ride implements Built<Ride, RideBuilder> {
 
   String? get driverId;
 
+  String? get status;
+
   double? get pickUpLatitude;
 
   double? get pickUpLongitude;
